@@ -35,7 +35,7 @@ jobs:
         - name: Publish Package
           env:
             NPM_PUBLISH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
-          run: yarn npm publish ${ARTIFACT_DIR:-artifacts}/package.tgz --access public
+          run: yarn npm publish --access public
         - name: Upload Artifacts
           if: ${{ always() }}
           uses: actions/upload-artifact@v2
