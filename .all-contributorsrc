@@ -1,6 +1,6 @@
 {
   "projectName": "inject-inline-html-webpack-plugin",
-  "projectOwner": "Top Hat Open Source",
+  "projectOwner": "tophat",
   "repoType": "github",
   "repoHost": "https://github.com",
   "files": [
@@ -9,6 +9,19 @@
   "imageSize": 100,
   "commit": true,
   "commitConvention": "none",
-  "contributors": [],
-  "contributorsPerLine": 7
+  "contributors": [
+    {
+      "login": "noahnu",
+      "name": "Noah",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1297096?v=4",
+      "profile": "https://noahnu.com",
+      "contributions": [
+        "ideas",
+        "code",
+        "infra"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true
 }
