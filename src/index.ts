@@ -1,5 +1,5 @@
 import HtmlWebpackPlugin from 'html-webpack-plugin'
-import { Compiler, SingleEntryPlugin, compilation } from 'webpack'
+import webpack from 'webpack'
 
 const PLUGIN_NAME = 'InjectInlineHtmlWebpackPlugin'
 
@@ -36,7 +36,7 @@ class InjectInlineHtmlWebpackPlugin {
         this.scripts = []
     }
 
-    apply(compiler: Compiler): void {
+    apply(compiler: webpack.Compiler): void {
         compiler.hooks.beforeRun.tapAsync(
             PLUGIN_NAME,
             this.tapBeforeRun.bind(this),
@@ -56,7 +56,10 @@ class InjectInlineHtmlWebpackPlugin {
         return `${prefix}-${this.scripts.findIndex(s => s === script)}`
     }
 
-    tapBeforeRun(compiler: Compiler, done: (...args: unknown[]) => void): void {
+    tapBeforeRun(
+        compiler: webpack.Compiler,
+        done: (error?: Error | null | false, result?: void) => void,
+    ): void {
         // parse set of inline scripts from the html webpack configs
         const inlineScripts = compiler.options.plugins
             ?.filter(plugin => plugin instanceof HtmlWebpackPlugin)
@@ -70,7 +73,7 @@ class InjectInlineHtmlWebpackPlugin {
         this.scripts.push(...new Set(inlineScripts ?? []))
 
         for (const script of this.scripts) {
-            new SingleEntryPlugin(
+            new webpack.EntryPlugin(
                 process.cwd(),
                 script,
                 this.getScriptKeyName(script),
@@ -79,7 +82,7 @@ class InjectInlineHtmlWebpackPlugin {
         done()
     }
 
-    tapCompilation(compilation: compilation.Compilation): void {
+    tapCompilation(compilation: webpack.Compilation): void {
         const hooks = HtmlWebpackPlugin.getHooks(compilation)
         hooks.alterAssetTagGroups.tapAsync(PLUGIN_NAME, (data, done) => {
             const inlineScripts = [
@@ -88,18 +91,24 @@ class InjectInlineHtmlWebpackPlugin {
             this.inlineRuntime(compilation, data)
             Promise.all(
                 inlineScripts.map(async inlineScript => {
-                    const scriptModule = compilation.modules.find(
-                        m => m.rawRequest === inlineScript,
-                    )
                     const assetKey = Object.keys(compilation.assets).find(key =>
-                        key.startsWith(
-                            `${this.getScriptKeyName(inlineScript)}-`,
-                        ),
+                        key.startsWith(this.getScriptKeyName(inlineScript)),
                     )
-                    if (scriptModule && assetKey) {
+                    if (assetKey && compilation.assets[assetKey]) {
                         const sourceCode = compilation.assets[assetKey].source()
-                        data.headTags.push(
-                            this.createInlineScriptTag(sourceCode),
+
+                        // insert before all other scripts
+                        const injectOffset =
+                            (data.headTags.findIndex(
+                                tag =>
+                                    tag.tagName === 'script' &&
+                                    tag.meta?.plugin !== PLUGIN_NAME,
+                            ) + 1 || data.headTags.length + 1) - 1
+
+                        data.headTags.splice(
+                            injectOffset,
+                            0,
+                            this.createInlineScriptTag(String(sourceCode)),
                         )
                     }
                 }),
@@ -115,11 +124,14 @@ class InjectInlineHtmlWebpackPlugin {
             innerHTML: `\n${source.trim()}\n`,
             voidTag: false,
             attributes: {},
+            meta: {
+                plugin: PLUGIN_NAME,
+            },
         }
     }
 
     inlineRuntime(
-        compilation: compilation.Compilation,
+        compilation: webpack.Compilation,
         data: {
             bodyTags: HtmlWebpackPlugin.HtmlTagObject[]
             headTags: HtmlWebpackPlugin.HtmlTagObject[]
@@ -137,14 +149,21 @@ class InjectInlineHtmlWebpackPlugin {
         const asset = compilation.assets[runtimeFilename]
         if (!asset) return
 
-        data.bodyTags = data.bodyTags.filter(
-            (tag: HtmlWebpackPlugin.HtmlTagObject) =>
-                !(tag?.attributes?.src as string | undefined)?.endsWith(
-                    runtimeFilename,
-                ),
-        )
+        const withoutRuntimeFilter = (tag: HtmlWebpackPlugin.HtmlTagObject) =>
+            !(tag?.attributes?.src as string | undefined)?.endsWith(
+                runtimeFilename,
+            )
 
-        data.headTags.push(this.createInlineScriptTag(asset.source()))
+        data.headTags = data.headTags.filter(withoutRuntimeFilter)
+        data.bodyTags = data.bodyTags.filter(withoutRuntimeFilter)
+
+        const runtimeTag = this.createInlineScriptTag(String(asset.source()))
+
+        // insert before all other scripts
+        const offset =
+            (data.headTags.findIndex(tag => tag.tagName === 'script') + 1 ||
+                data.headTags.length + 1) - 1
+        data.headTags.splice(offset, 0, runtimeTag)
     }
 }
 
