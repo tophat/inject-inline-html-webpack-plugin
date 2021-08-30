@@ -1,6 +1,6 @@
 {
   "name": "inject-inline-html-webpack-plugin",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Inject inline scripts into the html file generated via html webpack plugin",
   "main": "lib/index.js",
   "files": [
