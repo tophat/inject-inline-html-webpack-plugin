@@ -121,9 +121,18 @@ class InjectInlineHtmlWebpackPlugin {
     createInlineScriptTag(source: string): HtmlWebpackPlugin.HtmlTagObject {
         return {
             tagName: 'script',
-            innerHTML: `\n${source.trim()}\n`,
+            /**
+             * The !function syntax ensures this script is separated by an implicit semicolon
+             * from any earlier script modules, whereas (function(){})() might be considered a
+             * function invocation of a function defined in an earlier script.
+             *
+             * The newline before the closing brace is to support the // sourceMapUrl comment.
+             */
+            innerHTML: `\n!function(){${source.trim()}\n}();\n`,
             voidTag: false,
-            attributes: {},
+            attributes: {
+                'data-inline-chunk': true,
+            },
             meta: {
                 plugin: PLUGIN_NAME,
             },
