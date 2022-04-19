@@ -18,4 +18,6 @@ artifacts
 website/build
 
 # this is configured via bootstrap script
-.vscode
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json

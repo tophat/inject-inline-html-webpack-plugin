@@ -53,7 +53,7 @@ class InjectInlineHtmlWebpackPlugin {
 
     getScriptKeyName(script: string): string {
         const prefix = this.options.chunkPrefix ?? 'inject_inline'
-        return `${prefix}-${this.scripts.findIndex(s => s === script)}`
+        return `${prefix}-${this.scripts.findIndex((s) => s === script)}`
     }
 
     tapBeforeRun(
@@ -62,9 +62,9 @@ class InjectInlineHtmlWebpackPlugin {
     ): void {
         // parse set of inline scripts from the html webpack configs
         const inlineScripts = compiler.options.plugins
-            ?.filter(plugin => plugin instanceof HtmlWebpackPlugin)
+            ?.filter((plugin) => plugin instanceof HtmlWebpackPlugin)
             .map(
-                plugin =>
+                (plugin) =>
                     (plugin as HtmlWebpackPlugin.HtmlWebpackPlugin).options
                         ?.inlineScripts ?? [],
             )
@@ -90,9 +90,10 @@ class InjectInlineHtmlWebpackPlugin {
             ]
             this.inlineRuntime(compilation, data)
             Promise.all(
-                inlineScripts.map(async inlineScript => {
-                    const assetKey = Object.keys(compilation.assets).find(key =>
-                        key.startsWith(this.getScriptKeyName(inlineScript)),
+                inlineScripts.map(async (inlineScript) => {
+                    const assetKey = Object.keys(compilation.assets).find(
+                        (key) =>
+                            key.startsWith(this.getScriptKeyName(inlineScript)),
                     )
                     if (assetKey && compilation.assets[assetKey]) {
                         const sourceCode = compilation.assets[assetKey].source()
@@ -100,7 +101,7 @@ class InjectInlineHtmlWebpackPlugin {
                         // insert before all other scripts
                         const injectOffset =
                             (data.headTags.findIndex(
-                                tag =>
+                                (tag) =>
                                     tag.tagName === 'script' &&
                                     tag.meta?.plugin !== PLUGIN_NAME,
                             ) + 1 || data.headTags.length + 1) - 1
@@ -149,9 +150,9 @@ class InjectInlineHtmlWebpackPlugin {
         },
     ): void {
         const runtimeChunkName = this.options.runtimeChunkName ?? 'runtime'
-        const runtimeFilename = Object.keys(
-            compilation.assets,
-        ).find(assetName => assetName.startsWith(runtimeChunkName))
+        const runtimeFilename = Object.keys(compilation.assets).find(
+            (assetName) => assetName.startsWith(runtimeChunkName),
+        )
 
         if (!runtimeFilename) return
 
@@ -170,7 +171,7 @@ class InjectInlineHtmlWebpackPlugin {
 
         // insert before all other scripts
         const offset =
-            (data.headTags.findIndex(tag => tag.tagName === 'script') + 1 ||
+            (data.headTags.findIndex((tag) => tag.tagName === 'script') + 1 ||
                 data.headTags.length + 1) - 1
         data.headTags.splice(offset, 0, runtimeTag)
     }

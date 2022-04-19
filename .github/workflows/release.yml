@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - master
 
 env:
   CI: 1
@@ -13,11 +13,12 @@ jobs:
   release:
     name: Publish Inject Inline Html Webpack Plugin
     runs-on: ubuntu-20.04
+    if: "github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip ci]')"
     steps:
         - uses: actions/checkout@v2
         - uses: ./.github/actions/detect-env
         - name: Setup Node.js
-          uses: actions/setup-node@v1
+          uses: actions/setup-node@v3.1.1
           with:
             node-version: ${{ env.NODE_VERSION }}
         - name: Create artifacts directory
@@ -30,12 +31,16 @@ jobs:
             key: ${{ env.NODE_VERSION }}-${{ env.YARN_VERSION }}-${{ hashFiles('yarn.lock') }}
         - name: Install dependencies
           run: yarn install --immutable
-        - name: Build Package
-          run: yarn pack --filename ${ARTIFACT_DIR:-artifacts}/package.tgz
+        - name: Configure Git
+          run: |
+            git config --global user.email opensource-leads+bot@tophatmonocle.com
+            git config --global user.name tophat-opensource-bot
+            git config --global init.defaultBranch master
         - name: Publish Package
           env:
             NPM_PUBLISH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
-          run: yarn npm publish --access public
+            GH_TOKEN: ${{ secrets.TOPHAT_BOT_GH_TOKEN }}
+          run: yarn monodeploy --log-level 0 --plugins @monodeploy/plugin-github
         - name: Upload Artifacts
           if: ${{ always() }}
           uses: actions/upload-artifact@v2
