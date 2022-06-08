@@ -4,7 +4,6 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'
 import webpack from 'webpack'
 
 const PLUGIN_NAME = 'InjectInlineHtmlWebpackPlugin'
-
 const SCRIPT_EXTS = new Set<string>(['.js', '.cjs', '.mjs'])
 
 declare module 'html-webpack-plugin' {
