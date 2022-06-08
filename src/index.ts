@@ -56,7 +56,7 @@ class InjectInlineHtmlWebpackPlugin {
 
     getScriptKeyName(script: string): string {
         const prefix = this.options.chunkPrefix ?? 'inject_inline'
-        return `${prefix}-${this.scripts.findIndex((s) => s === script)}`
+        return `${prefix}-${this.scripts.findIndex((s) => s === script)}i`
     }
 
     tapBeforeRun(
