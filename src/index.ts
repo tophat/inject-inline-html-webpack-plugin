@@ -1,7 +1,11 @@
+import path from 'path'
+
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import webpack from 'webpack'
 
 const PLUGIN_NAME = 'InjectInlineHtmlWebpackPlugin'
+
+const SCRIPT_EXTS = new Set<string>(['.js', '.cjs', '.mjs'])
 
 declare module 'html-webpack-plugin' {
     class HtmlWebpackPlugin {
@@ -91,9 +95,9 @@ class InjectInlineHtmlWebpackPlugin {
             this.inlineRuntime(compilation, data)
             Promise.all(
                 inlineScripts.map(async (inlineScript) => {
-                    const assetKey = Object.keys(compilation.assets).find(
-                        (key) =>
-                            key.startsWith(this.getScriptKeyName(inlineScript)),
+                    const assetKey = this.findCompilationAssetName(
+                        compilation,
+                        this.getScriptKeyName(inlineScript),
                     )
                     if (assetKey && compilation.assets[assetKey]) {
                         const sourceCode = compilation.assets[assetKey].source()
@@ -117,6 +121,18 @@ class InjectInlineHtmlWebpackPlugin {
                 done(null, data)
             })
         })
+    }
+
+    findCompilationAssetName(
+        compilation: webpack.Compilation,
+        prefix: string,
+    ): string | undefined {
+        // We're only interested in scripts and not LICENSES or source maps.
+        return Object.keys(compilation.assets).find(
+            (assetName) =>
+                SCRIPT_EXTS.has(path.extname(assetName)) &&
+                assetName.startsWith(prefix),
+        )
     }
 
     createInlineScriptTag(source: string): HtmlWebpackPlugin.HtmlTagObject {
@@ -150,8 +166,9 @@ class InjectInlineHtmlWebpackPlugin {
         },
     ): void {
         const runtimeChunkName = this.options.runtimeChunkName ?? 'runtime'
-        const runtimeFilename = Object.keys(compilation.assets).find(
-            (assetName) => assetName.startsWith(runtimeChunkName),
+        const runtimeFilename = this.findCompilationAssetName(
+            compilation,
+            runtimeChunkName,
         )
 
         if (!runtimeFilename) return
